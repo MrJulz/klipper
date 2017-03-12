@@ -165,6 +165,8 @@ class MCU_endstop:
         self._retry_query_ticks = 0
         self._last_state = {}
         self.print_to_mcu_time = mcu.print_to_mcu_time
+    def add_steppers(self, steppers):
+        self._steppers.extend(steppers)
     def build_config(self):
         self._mcu_freq = self._mcu.get_mcu_freq()
         self._mcu.add_config_cmd(
