@@ -164,6 +164,7 @@ class MCU_endstop:
         self._next_query_clock = self._home_timeout_clock = 0
         self._retry_query_ticks = 0
         self._last_state = {}
+        mcu.add_init_callback(self._init_callback)
         self.print_to_mcu_time = mcu.print_to_mcu_time
     def add_steppers(self, steppers):
         self._steppers.extend(steppers)
@@ -172,16 +173,18 @@ class MCU_endstop:
         self._mcu.add_config_cmd(
             "config_end_stop oid=%d pin=%s pull_up=%d stepper_count=%d" % (
                 self._oid, self._pin, self._pullup, len(self._steppers)))
-        for i, s in enumerate(self._steppers):
-            self._mcu.add_config_cmd(
-                "end_stop_set_stepper oid=%d pos=%d stepper_oid=%d" % (
-                    self._oid, i, s.get_oid()))
         self._retry_query_ticks = int(self._mcu_freq * self.RETRY_QUERY)
         self._home_cmd = self._mcu.lookup_command(
             "end_stop_home oid=%c clock=%u rest_ticks=%u pin_value=%c")
         self._query_cmd = self._mcu.lookup_command("end_stop_query oid=%c")
         self._mcu.register_msg(self._handle_end_stop_state, "end_stop_state"
                                , self._oid)
+    def _init_callback(self):
+        set_cmd = self._mcu.lookup_command(
+            "end_stop_set_stepper oid=%c pos=%c stepper_oid=%c")
+        for i, s in enumerate(self._steppers):
+            msg = set_cmd.encode(self._oid, i, s.get_oid())
+            self._mcu.send(msg, cq=self._cmd_queue)
     def home_start(self, mcu_time, rest_time):
         clock = int(mcu_time * self._mcu_freq)
         rest_ticks = int(rest_time * self._mcu_freq)
