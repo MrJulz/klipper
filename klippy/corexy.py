@@ -28,7 +28,11 @@ class CoreXYKinematics:
         #logging.debug("set_position %s %s", newpos, pos)
         for i in StepList:
             s = self.steppers[i]
-            s.mcu_stepper.set_position(int(pos[i]*s.inv_step_dist + 0.5))
+            if pos[i] >= 0.:
+                steppos = int(pos[i]*s.inv_step_dist + 0.5)
+            else:
+                steppos = int(pos[i]*s.inv_step_dist - 0.5)
+            s.mcu_stepper.set_position(steppos)
     def home(self, homing_state):
         #logging.debug("homing start")
         # Each axis is homed independently and in order
