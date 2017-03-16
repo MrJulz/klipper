@@ -233,15 +233,17 @@ check_line(struct stepcompress *sc, struct step_move move)
     if (move.count == 1) {
         if (move.interval != (uint32_t)(*sc->queue_pos - sc->last_step_clock)
             || *sc->queue_pos < sc->last_step_clock) {
-            errorf("stepcompress o=%d i=%d c=%d a=%d: Count 1 point out of range"
-                   , sc->oid, move.interval, move.count, move.add);
+            errorf("stepcompress o=%d i=%d c=%d a=%d:"
+                   " Count 1 point out of range (%lld)"
+                   , sc->oid, move.interval, move.count, move.add
+                   , (long long)(*sc->queue_pos - sc->last_step_clock));
             return ERROR_RET;
         }
         return 0;
     }
     if (!move.count || (!move.interval && !move.add)
         || move.interval >= 0x80000000) {
-        errorf("stepcompress o=%d i=%d c=%d a=%d: Point out of range"
+        errorf("stepcompress o=%d i=%d c=%d a=%d: Invalid sequence"
                , sc->oid, move.interval, move.count, move.add);
         return ERROR_RET;
     }
