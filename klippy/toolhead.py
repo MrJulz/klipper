@@ -48,7 +48,7 @@ class Move:
             or not self.is_kinematic_move or not prev_move.is_kinematic_move):
             return
         # Allow extruder to calculate its maximum junction
-        extruder_v2 = self.toolhead.extruder.calc_junction(prev_move, self)
+        extruder_v2 = self.toolhead.current_extruder.calc_junction(prev_move, self)
         # Find max velocity using approximated centripetal velocity as
         # described at:
         # https://onehossshay.wordpress.com/2011/09/24/improving_grbl_cornering_algorithm/
@@ -87,7 +87,7 @@ class Move:
         if self.is_kinematic_move:
             self.toolhead.kin.move(next_move_time, self)
         if self.axes_d[3]:
-            self.toolhead.extruder.move(next_move_time, self)
+            self.toolhead.current_extruder.move(next_move_time, self)
         self.toolhead.update_move_time(
             self.accel_t + self.cruise_t + self.decel_t)
 
@@ -197,7 +197,7 @@ class ToolHead:
             , above=0., maxval=self.max_accel)
         self.junction_deviation = config.getfloat(
             'junction_deviation', 0.02, above=0.)
-        #JULZ WARNING MAY NEED TO CANGE THIS
+        #KEVIN_QUERY: unsure how to corrently combine move_queue with multiple extruders - is the below line sufficient?
         self.move_queue = MoveQueue(self.current_extruder.lookahead)
         self.commanded_pos = [0., 0., 0., 0.]
         # Print time tracking
@@ -225,7 +225,9 @@ class ToolHead:
         # before cornering.  The 8. was determined experimentally.
         xy_halt = math.sqrt(8. * self.junction_deviation * self.max_accel)
         self.kin.set_max_jerk(xy_halt, self.max_speed, self.max_accel)
-        self.current_extruder.set_max_jerk(xy_halt, self.max_speed, self.max_accel)
+        #KEVIN_QUERY: should we just set "max jerk" for the Toolhead itself, rather than for each extruder, as I have done below?
+        for e in self.extruders:
+            e.set_max_jerk(xy_halt, self.max_speed, self.max_accel)
     # Print time tracking
     def update_move_time(self, movetime):
         self.print_time += movetime

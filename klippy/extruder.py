@@ -11,9 +11,6 @@ EXTRUDE_DIFF_IGNORE = 1.02
 class PrinterExtruder:
     def __init__(self, printer, config):
         name = self.name = config.section
-        self.index=0
-        if name != 'extruder':
-            self.index= int(name[len('extruder'):])
         self.config = config
         self.heater = heater.PrinterHeater(printer, config)
         self.stepper = stepper.PrinterStepper(printer, config, name)
@@ -37,7 +34,9 @@ class PrinterExtruder:
         self.need_motor_enable = True
         self.extrude_pos = 0.
         #Multi-extruder support
+        self.index=0
         if name != 'extruder':
+            self.index= int(name[len('extruder'):])
             self.nozzle_offset=[]
             self.nozzle_offset.append(config.getfloat('x_offset',0))
             self.nozzle_offset.append(config.getfloat('y_offset',0))

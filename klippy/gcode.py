@@ -56,9 +56,9 @@ class GCodeParser:
         if self.fan is not None:
             handlers.extend(['M106', 'M107'])
         #add toolchange handlers
-        if self.extruders:
+        if self.extruders and len(self.extruders)>1:
             handlers.append('M280')
-            for t in range(len(self.extruders)-1):
+            for t in range(len(self.extruders)):
                 handlers.append('T'+str(t))
                 self.add_toolchange_method(t)
         if not self.is_printer_ready:
@@ -81,7 +81,7 @@ class GCodeParser:
             return
         #calculate the XYZ offset between nozzles
         delta_offset = [a-b for a,b in zip(
-            t.current_extruder.offset, next_extruder.offset)]
+            t.current_extruder.nozzle_offset, next_extruder.nozzle_offset)]
         delta_offset.append(0)
         self.last_position = [sum(x) for x in zip (self.last_position, delta_offset)]
         try:
@@ -235,9 +235,8 @@ class GCodeParser:
         out = []
         for e in self.extruders:
             cur, target = e.heater.get_temp()
-            out.append("T%d:%.1f /%.1f" % (e.index, cur, target))
-        if len(self.extruders)==1:
-            out[-1]=out[-1].replace('0','',1)
+            extruder_index = '' if len(self.extruders)==1 else str(e.index)
+            out.append("T%s:%.1f /%.1f" % (extruder_index, cur, target))
         if self.heater_bed:
             cur, target = self.heater_bed.get_temp()
             out.append("B:%.1f /%.1f" % (cur, target))
@@ -362,7 +361,6 @@ class GCodeParser:
                 self.respond_info("Invalid extruder index: %d" % extruder)
                 return
             heater = self.extruders[extruder].heater
-        logging.debug("********Setting Heater: %s - pin: %s" % (heater.name, heater.heater_pin))
         self.set_temp(heater, params)
     cmd_M105_when_not_ready = True
     def cmd_M105(self, params):
@@ -417,14 +415,15 @@ class GCodeParser:
             self.base_position[p] += self.homing_add[p] - offset
             self.homing_add[p] = offset
     def cmd_M280(self, params):
+        # Set servo position
         if len(self.extruders)==1:
-            self.respond_info('Only one extruder present in config file.')
+            self.respond_info('Only one extruder present in config file. (No servo\'s');
             return
         if len(params)<=3:
             #print servo mapping
             for e in self.extruders:
                 if e.servo is not None:
-                    servo_status = "has a servo attached (P%d)" % index
+                    servo_status = "has a servo attached (P%d)" % e.index
                 else:
                     servo_status = "does not have a servo"
                 self.respond_info("Extruder%d: %s" % (e.index, servo_status))
@@ -435,9 +434,9 @@ class GCodeParser:
                     "There is no servo P%d. Enter \"M280\" to list servos" % index)
                 return
             e=self.extruders[index]
-            servo_position=self.get_int('S', params)
+            position=self.get_int('S', params)
             print_time = self.toolhead.get_last_move_time()
-            if servo_position<200: #position specified in degrees
+            if position<200: #position specified in degrees
                 e.servo.set_angle(print_time, position)
                 self.respond_info("Set servo P%d to %d degrees" % (index, position))
             else: #position is pulsewidth in microseconds
