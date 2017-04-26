@@ -351,24 +351,26 @@ class GCodeParser:
     def cmd_M18(self, params):
         # Turn off motors
         self.toolhead.motor_off()
-    def cmd_M104(self, params):
-        # Set Extruder Temperature
+    def extruder_set_temp_wrapper(self, params, wait):
         if 'T' not in params:
             heater = self.toolhead.current_extruder.heater
         else:
-            extruder=self.get_int('T', params, -1)
-            if extruder<0 or extruder>len(self.extruders)-1:
+            extruder_index=self.get_int('T', params, -1)
+            if extruder_index not in range(len(self.extruders)):
                 self.respond_info("Invalid extruder index: %d" % extruder)
                 return
-            heater = self.extruders[extruder].heater
-        self.set_temp(heater, params)
+            heater = self.extruders[extruder_index].heater
+        self.set_temp(heater, params, wait)
+    def cmd_M104(self, params):
+        # Set Extruder Temperature
+        self.extruder_set_temp_wrapper(params, False);
     cmd_M105_when_not_ready = True
     def cmd_M105(self, params):
         # Get Extruder Temperature
         self.ack(self.get_temp())
     def cmd_M109(self, params):
         # Set Extruder Temperature and Wait
-        self.set_temp(self.toolhead.current_extruder.heater, params, wait=True)
+        self.extruder_set_temp_wrapper(params, True);
     cmd_M110_when_not_ready = True
     def cmd_M110(self, params):
         # Set Current Line Number
