@@ -39,9 +39,9 @@ Error configuring printer
 """
 
 message_shutdown = """
-Once the underlying issue is corrected, the "CLEAR_SHUTDOWN"
-command can be used to clear the firmware flag and restart
-the host software.
+Once the underlying issue is corrected, use the
+"FIRMWARE_RESTART" command to reset the firmware, reload the
+config, and restart the host software.
 Printer is shutdown
 """
 
@@ -256,8 +256,8 @@ class Printer:
         try:
             if self.mcu is not None:
                 self.stats(self.reactor.monotonic())
-                self.mcu.disconnect()
                 self.mcu.microcontroller_restart()
+                self.mcu.disconnect()
         except:
             logging.exception("Unhandled exception during firmware_restart")
     def get_startup_state(self):
