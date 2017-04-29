@@ -30,6 +30,9 @@ class PrinterExtruder:
         if self.pressure_advance:
             self.pressure_advance_lookahead_time = config.getfloat(
                 'pressure_advance_lookahead_time', 0.010, minval=0.)
+        self.nozzle_offset = (config.getfloat('x_offset', 0.),
+                              config.getfloat('y_offset', 0.),
+                              config.getfloat('z_offset', 0.), 0.)
         self.need_motor_enable = True
         self.extrude_pos = 0.
     def set_max_jerk(self, max_xy_halt_velocity, max_velocity, max_accel):
@@ -40,6 +43,13 @@ class PrinterExtruder:
             'max_extrude_only_accel', max_accel * self.max_extrude_ratio
             , above=0.)
         self.stepper.set_max_jerk(9999999.9, 9999999.9)
+    def get_heater(self):
+        return self.heater
+    def get_nozzle_offset(self):
+        return self.nozzle_offset
+    def set_active(self, print_time, is_active):
+        self.extrude_pos = 0.
+        self.stepper.mcu_stepper.set_position(0.)
     def motor_off(self, move_time):
         self.stepper.motor_enable(move_time, 0)
         self.need_motor_enable = True
@@ -199,6 +209,8 @@ class PrinterExtruder:
 class DummyExtruder:
     def set_max_jerk(self, max_xy_halt_velocity, max_velocity, max_accel):
         pass
+    def set_active(self, print_time, is_active):
+        pass
     def motor_off(self, move_time):
         pass
     def check_move(self, move):
@@ -211,5 +223,22 @@ class DummyExtruder:
 
 def add_printer_objects(printer, config):
     if config.has_section('extruder'):
-        printer.add_object('extruder', PrinterExtruder(
+        printer.add_object('extruder0', PrinterExtruder(
             printer, config.getsection('extruder')))
+        return
+    # Multi extruder support
+    for i in range(99):
+        section = 'extruder%d' % (i,)
+        if not config.has_section(section):
+            break
+        printer.add_object(section, PrinterExtruder(
+            printer, config.getsection(section)))
+
+def get_printer_extruders(printer):
+    out = []
+    for i in range(99):
+        extruder = printer.objects.get('extruder%d' % (i,))
+        if extruder is None:
+            break
+        out.append(extruder)
+    return out
