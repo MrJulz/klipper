@@ -59,8 +59,9 @@ class GCodeParser:
         extruders = extruder.get_printer_extruders(self.printer)
         if extruders:
             self.extruder = extruders[0]
-            self.heaters.append(self.extruder.get_heater())
             self.toolhead.set_extruder(self.extruder)
+            for e in extruders:
+                self.heaters.append(e.get_heater())
         self.heaters.append(self.printer.objects.get('heater_bed'))
         self.fan = self.printer.objects.get('fan')
         if self.is_fileinput and self.fd_handle is None:
