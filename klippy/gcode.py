@@ -373,11 +373,11 @@ class GCodeParser:
         if self.toolhead is None:
             self.cmd_default(params)
             return
-        kinpos = self.toolhead.get_position()
-        self.respond("X:%.3f Y:%.3f Z:%.3f E:%.3f Count X:%.3f Y:%.3f Z:%.3f" % (
+        self.respond("X:%.3f Y:%.3f Z:%.3f E:%.3f, Base X:%.3f Y:%.3f Z:%.3f E:%.3f" % (
             self.last_position[0], self.last_position[1],
             self.last_position[2], self.last_position[3],
-            kinpos[0], kinpos[1], kinpos[2]))
+            self.base_position[0], self.base_position[1],
+            self.base_position[2], self.base_position[3]))
     cmd_M115_when_not_ready = True
     def cmd_M115(self, params):
         # Get Firmware Version and Capabilities

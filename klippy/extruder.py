@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
-import stepper, heater, homing
+import stepper, heater, homing, servo
 
 EXTRUDE_DIFF_IGNORE = 1.02
 
@@ -35,6 +35,12 @@ class PrinterExtruder:
                               config.getfloat('z_offset', 0.), 0.)
         self.need_motor_enable = True
         self.extrude_pos = 0.
+        self.servo=None
+        if config.get('servo_pin', None):
+            self.servo=servo.PrinterServo(printer, config)
+            self.servo_angle_extruder_active = config.getint('servo_angle_extruder_active')
+            self.servo_angle_extruder_inactive = config.getint('servo_angle_extruder_inactive')
+            self.servowaittime = config.getfloat('servo_wait_time', 0)
     def set_max_jerk(self, max_xy_halt_velocity, max_velocity, max_accel):
         self.max_e_velocity = self.config.getfloat(
             'max_extrude_only_velocity', max_velocity * self.max_extrude_ratio
