@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, re, logging, collections
-import homing, extruder
+import homing, extruder, servo
 
 # Parse out incoming GCode and find and translate head movements
 class GCodeParser:
@@ -272,7 +272,7 @@ class GCodeParser:
     all_handlers = [
         'G1', 'G4', 'G20', 'G28', 'G90', 'G91', 'G92',
         'M82', 'M83', 'M18', 'M105', 'M104', 'M109', 'M112', 'M114', 'M115',
-        'M140', 'M190', 'M106', 'M107', 'M206', 'M400',
+        'M140', 'M190', 'M106', 'M107', 'M206', 'M400', 'M280',
         'IGNORE', 'QUERY_ENDSTOPS', 'PID_TUNE', 'RESTART', 'FIRMWARE_RESTART',
         'STATUS', 'HELP']
     cmd_G1_aliases = ['G0']
@@ -403,6 +403,22 @@ class GCodeParser:
         for p, offset in offsets.items():
             self.base_position[p] += self.homing_add[p] - offset
             self.homing_add[p] = offset
+    def cmd_M280(self, params):
+        #Set Servo Position        
+        servos=servo.get_printer_servos(self.printer)
+        index = self.get_int('P', params)
+        position=self.get_int('S', params)
+        if not servos or index > (len(servos)-1):
+            self.respond_info("%d servos configured" % (len(servos)))
+            return
+        print_time = self.toolhead.get_last_move_time()
+        if position<200: #position specified in degrees
+            servos[index].set_angle(print_time, position)
+            self.respond_info("Set servo P%d to %d degrees" % (index, position))
+        else: #position is pulsewidth in microseconds
+            servos[index].set_pulsewidth(print_time, (position/1000000.))
+            self.respond_info("Set servo P%d to %d microseconds" % (index, position))
+
     def cmd_M400(self, params):
         # Wait for current moves to finish
         self.toolhead.wait_moves()
